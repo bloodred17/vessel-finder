@@ -3,7 +3,7 @@ import $ from "jquery"
 import {Injectable} from "anti-di";
 import {Command, WorkerMessage} from "./command.ts";
 import {Subscriber} from "rxjs";
-import {Job, Status} from "./jobs.ts";
+import {NewJob, Status} from "./jobs.ts";
 import {VesselSchema} from "./vessel.schema.ts";
 import {Schema} from "mongoose";
 import { appendFile } from "node:fs/promises";
@@ -13,7 +13,7 @@ export class VesselFinderScraper extends Injectable {
   domain = 'https://www.vesselfinder.com'
   url = 'https://www.vesselfinder.com/vessels?type=403'
 
-  async getVesselDetails(subscriber: Subscriber<unknown>, browser: Browser, job: Job & {status: Status}, mongodbWorker: Worker) {
+  async getVesselDetails(subscriber: Subscriber<unknown>, browser: Browser, job: NewJob & {status: Status}, mongodbWorker: Worker) {
     const page = await browser?.newPage();
     try {
       subscriber.next({ message: 'Processing ' + job?.name });

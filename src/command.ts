@@ -1,4 +1,4 @@
-import {Job} from "./jobs.ts";
+import {NewJob} from "./jobs.ts";
 
 export enum Command {
   Start = 'start',
@@ -10,5 +10,5 @@ export enum Command {
 
 export interface WorkerMessage {
   command: Command,
-  data: Job[] | any
+  data: NewJob[] | any
 }
