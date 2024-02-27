@@ -6,6 +6,9 @@
     "@types/jquery": "^3.5.29",
     "bun-types": "latest"
   },
+  "scripts": {
+    "start": "bun run ./src/index.ts"
+  },
   "peerDependencies": {
     "typescript": "^5.0.0"
   },
