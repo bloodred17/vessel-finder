@@ -15,12 +15,17 @@ export class MongodbTask extends Injectable {
   }
 
   addTask(item: any, limit = 10) {
-    if (!this._tasks?.at(-1)?.length ||
-      (this._tasks?.at(-1)?.length && this._tasks?.at(-1)?.length < limit)) {
-      this._tasks?.at(-1)?.push(item);
-    } else {
-      this._tasks?.at(-1)?.push([item]);
-    }
+    // if (!this._tasks?.at(-1)?.length ||
+    //   (this._tasks?.at(-1)) {
+    //   this._tasks?.at(-1)?.push(item);
+    // } else {
+    // }
+    //
+    // if (this._tasks?.at(-1) && thi._tasks?.at(-1)?.length < limit) {
+    //   this._tasks?.at(-1)?.push([item]);
+    // } else {
+    //   this._tasks?.
+    // }
   }
 
   async processTask(subscriber: Subscriber<any>) {

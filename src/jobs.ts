@@ -85,15 +85,13 @@ export class Jobs extends Injectable {
               this.jobList[index] = { ...job, status };
             });
         }
-
-
-        // this.jobList.forEach((job) => job.status = Status.Done);
-      }, 10_000)
+        
+      }, 5_000)
     })
   }
 
   queryJobs(limit = 3) {
     return this.jobList.filter((job) => job.status == Status.Queued)
-      .slice(0, 5)
+      .slice(0, limit)
   }
 }

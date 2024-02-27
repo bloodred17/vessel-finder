@@ -1,6 +1,6 @@
 {
   "name": "vessel-finder",
-  "module": "index.ts",
+  "module": "src/index.ts",
   "type": "module",
   "devDependencies": {
     "@types/jquery": "^3.5.29",

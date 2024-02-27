@@ -6,7 +6,7 @@ import {Subscriber} from "rxjs";
 import {Job, Status} from "./jobs.ts";
 import {VesselSchema} from "./vessel.schema.ts";
 import {Schema} from "mongoose";
-import * as fs from "fs";
+import { appendFile } from "node:fs/promises";
 
 
 export class VesselFinderScraper extends Injectable {
@@ -21,6 +21,7 @@ export class VesselFinderScraper extends Injectable {
       await page.addScriptTag({ url: 'https://code.jquery.com/jquery-3.7.1.min.js' });
 
       const details = await page.evaluate(() => {
+        // const $ = window.$;
         const _details: any = {}
         const exp = (field: string) => $(`td:contains(${field})`)?.last()?.next()?.text()?.trim();
         _details.imo_number = exp('IMO number');
@@ -37,26 +38,8 @@ export class VesselFinderScraper extends Injectable {
 
       console.log(details)
       const date = new Date();
-      // await VesselSchema.model.create({
-      //   ...details,
-      //   created_at: date,
-      //   updated_at: date,
-      // });
 
-      // mongodbWorker.postMessage({
-      //   command: Command.CreateTask,
-      //   date: {
-      //     ...details,
-      //     created_at: date,
-      //     updated_at: date,
-      //   }
-      // });
-
-      fs.appendFileSync('./output/log.txt', JSON.stringify({
-        ...details,
-        created_at: date,
-        updated_at: date,
-      }));
+      await appendFile(`./output/${details?.year_of_build}_log.txt`, JSON.stringify(details) + ',\n');
 
       await page?.close();
       return Status.Done;
@@ -76,30 +59,55 @@ export class VesselFinderScraper extends Injectable {
     const page = await browser.newPage();
 
     try {
-      await page.goto(this.url, { waitUntil: 'domcontentloaded' });
-      await page.addScriptTag({ url: 'https://code.jquery.com/jquery-3.7.1.min.js' });
+      const startDate = 2024;
+      const endDate = 1999;
 
-      await page.waitForSelector('table.results');
-      const entries = await page.evaluate(() => {
-        const rows: any[] = []
-        $('table.results tbody tr').each(function (this) {
-          rows.push({
-            name: $(this)?.find('.slna')?.text()?.trim(),
-            url: $(this)?.find('.ship-link')?.attr('href'),
-          })
+      for await (const index of Object.keys(Array.from(Array(startDate - endDate)))) {
+        const max = startDate - parseInt(index);
+        const min = startDate - parseInt(index) - 1;
+
+        const url = this.url + `&minYear=${min}&maxYear=${max}`;
+        await page.goto(url, { waitUntil: 'domcontentloaded' });
+        await page.addScriptTag({ url: 'https://code.jquery.com/jquery-3.7.1.min.js' });
+
+        const totalPages = await page.evaluate(() => {
+          return $('.pagination span:contains("page")')?.last()?.text()?.trim()?.split('/')?.at(-1);
         });
-        return rows;
-      });
+        console.log(totalPages)
 
-      worker.postMessage({
-        command: Command.CreateJobs,
-        data: entries,
-      } as WorkerMessage)
+        if (totalPages) {
+          for await (const index of Object.keys(Array.from(Array(+totalPages)))) {
+            await page.goto(url + '&page=' + (+index + 1), { waitUntil: 'domcontentloaded' });
+            await page.addScriptTag({ url: 'https://code.jquery.com/jquery-3.7.1.min.js' });
+
+            await page.waitForSelector('table.results');
+            const entries = await page.evaluate(() => {
+              const rows: any[] = []
+              $('table.results tbody tr').each(function (this) {
+                rows.push({
+                  name: $(this)?.find('.slna')?.text()?.trim(),
+                  url: $(this)?.find('.ship-link')?.attr('href'),
+                })
+              });
+              return rows;
+            });
+
+            worker.postMessage({
+              command: Command.CreateJobs,
+              data: entries,
+            } as WorkerMessage)
+          }
+        }
+
+      }
 
       await page?.close();
       await browser?.close();
     } catch (e) {
       console.log(e)
+
+      await page?.close();
+      await browser?.close();
     }
   }
 }
