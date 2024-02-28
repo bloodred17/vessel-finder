@@ -5,7 +5,7 @@ import {getModelForClass, index, modelOptions, prop} from "@typegoose/typegoose"
   schemaOptions: { collection: 'vessels' }
 })
 @index(
-  { date: -1 },
+  { vessel_name: 1 },
 )
 export class VesselSchema {
   @prop({type: String})
