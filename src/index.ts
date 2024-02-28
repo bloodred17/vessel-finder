@@ -1,4 +1,4 @@
-import {VesselFinderScraper} from "./scrape.ts";
+import {VesselFinderScraper} from "./vessel-finder.scraper.ts";
 import {Command, WorkerMessage} from "./command.ts";
 import {mongoose} from "@typegoose/typegoose";
 import {VesselSchema} from "./vessel.schema.ts";

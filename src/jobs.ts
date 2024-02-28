@@ -1,7 +1,7 @@
 import {Injectable} from "anti-di";
 import {Observable, take} from "rxjs";
 import puppeteer, {Browser} from "puppeteer";
-import {VesselFinderScraper} from "./scrape.ts";
+import {VesselFinderScraper} from "./vessel-finder.scraper.ts";
 import MessageEvent = Bun.MessageEvent;
 import {Command} from "./command.ts";
 import {fromArrayLike} from "rxjs/internal/observable/innerFrom";

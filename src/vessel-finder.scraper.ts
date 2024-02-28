@@ -1,19 +1,37 @@
 import puppeteer, {Browser} from "puppeteer";
-import $ from "jquery"
+import $ from "jquery";
 import {Injectable} from "anti-di";
 import {Command, WorkerMessage} from "./command.ts";
-import {Subscriber} from "rxjs";
+import {Observable, Subscriber} from "rxjs";
 import {NewJob, Status} from "./jobs.ts";
-import {VesselSchema} from "./vessel.schema.ts";
-import {Schema} from "mongoose";
-import { appendFile } from "node:fs/promises";
+import {appendFile} from "node:fs/promises";
 
 
 export class VesselFinderScraper extends Injectable {
   domain = 'https://www.vesselfinder.com'
   url = 'https://www.vesselfinder.com/vessels?type=403'
 
-  async getVesselDetails(subscriber: Subscriber<unknown>, browser: Browser, job: NewJob & {status: Status}, mongodbWorker: Worker) {
+  mock() {
+    return new Observable((subscriber) => {
+      puppeteer.launch({
+        headless: false,
+        args: ['--start-maximized'],
+        defaultViewport: null,
+      }).then(async (browser) => {
+        subscriber.next(
+          await this.getVesselDetails(subscriber, browser, {
+            name: '',
+            url: '/vessels/details/9949962',
+            status: Status.Processing,
+          })
+        );
+        await browser.close();
+        subscriber.complete();
+      });
+    })
+  }
+
+  async getVesselDetails(subscriber: Subscriber<unknown>, browser: Browser, job: NewJob & {status: Status}, mongodbWorker?: Worker) {
     const page = await browser?.newPage();
     try {
       subscriber.next({ message: 'Processing ' + job?.name });
@@ -24,6 +42,10 @@ export class VesselFinderScraper extends Injectable {
         // const $ = window.$;
         const _details: any = {}
         const exp = (field: string) => $(`td:contains(${field})`)?.last()?.next()?.text()?.trim();
+        const status = exp('Status');
+        if (status && status?.includes('Not in Service')) {
+          return _details;
+        }
         _details.imo_number = exp('IMO number');
         _details.vessel_name = exp('Vessel Name');
         _details.ship_type = exp('Ship type');
@@ -37,9 +59,12 @@ export class VesselFinderScraper extends Injectable {
       });
 
       console.log(details)
-      const date = new Date();
-
-      await appendFile(`./output/${details?.year_of_build}_log.txt`, JSON.stringify(details) + ',\n');
+      if (Object.keys(details)?.length > 0) {
+        // const date = new Date();
+        // details.created_at = date;
+        // details.last_updated_at = date;
+        await appendFile(`./output/${details?.year_of_build}_log.txt`, JSON.stringify(details) + ',\n');
+      }
 
       await page?.close();
       return Status.Done;
