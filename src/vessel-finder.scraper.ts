@@ -5,11 +5,33 @@ import {Command, WorkerMessage} from "./command.ts";
 import {Observable, Subscriber} from "rxjs";
 import {NewJob, Status} from "./jobs.ts";
 import {appendFile} from "node:fs/promises";
+import {mongoose} from "@typegoose/typegoose";
 
 
 export class VesselFinderScraper extends Injectable {
-  domain = 'https://www.vesselfinder.com'
-  url = 'https://www.vesselfinder.com/vessels?type=403'
+  domain = 'https://www.vesselfinder.com';
+  url = 'https://www.vesselfinder.com/vessels?type=403';
+  vesselModel: any;
+  mongodbURI = 'mongodb://127.0.0.1:27017/test';
+
+  constructor() {
+    super();
+
+    mongoose.connect(this.mongodbURI).then(() => {
+      console.log('Connecting to db...');
+      this.vesselModel = mongoose.model('Vessel', {
+        imo_number: String,
+        vessel_name: String,
+        ship_type: String,
+        flag: String,
+        gross_tonnage: String,
+        length_overall: String,
+        year_of_build: String,
+        mmsi: String,
+        callsign: String,
+      } as any);
+    });
+  }
 
   mock() {
     return new Observable((subscriber) => {
@@ -21,7 +43,8 @@ export class VesselFinderScraper extends Injectable {
         subscriber.next(
           await this.getVesselDetails(subscriber, browser, {
             name: '',
-            url: '/vessels/details/9949962',
+            // url: '/vessels/details/9949962',
+            url: '/vessels/details/9943267',
             status: Status.Processing,
           })
         );
@@ -58,12 +81,18 @@ export class VesselFinderScraper extends Injectable {
         return _details;
       });
 
-      console.log(details)
+      // console.log(details)
       if (Object.keys(details)?.length > 0) {
-        // const date = new Date();
-        // details.created_at = date;
-        // details.last_updated_at = date;
-        await appendFile(`./output/${details?.year_of_build}_log.txt`, JSON.stringify(details) + ',\n');
+        const date = new Date();
+        details.created_at = date;
+        details.last_updated_at = date;
+        try {
+          const vessel = new this.vesselModel(details);
+          await vessel.save();
+          await appendFile(`./output/${details?.year_of_build}_log.txt`, JSON.stringify(details) + ',\n');
+        } catch (e) {
+          await appendFile(`./output/${details?.year_of_build}_failed_log.txt`, JSON.stringify(details) + ',\n');
+        }
       }
 
       await page?.close();
