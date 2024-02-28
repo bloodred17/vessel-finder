@@ -39,7 +39,7 @@ export class VesselSchema {
   created_at?: Date;
 
   @prop({type: Date})
-  updated_at?: Date;
+  last_updated_on?: Date;
 
   constructor(init?: VesselSchema) {
     if (init) {

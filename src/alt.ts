@@ -1,6 +1,8 @@
 import {VesselFinderScraper} from "./vessel-finder.scraper.ts";
 
 const vf = VesselFinderScraper.getInstance<VesselFinderScraper>(VesselFinderScraper);
-vf.mock().subscribe((status) => console.log(status));
+vf.mock().subscribe({
+  next: (status) => console.log(status),
+  complete: () => process.exit(0),
+});
 
-process.exit(0);

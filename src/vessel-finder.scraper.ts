@@ -6,6 +6,7 @@ import {Observable, Subscriber} from "rxjs";
 import {NewJob, Status} from "./jobs.ts";
 import {appendFile} from "node:fs/promises";
 import {mongoose} from "@typegoose/typegoose";
+import {VesselSchema} from "./vessel.schema.ts";
 
 
 export class VesselFinderScraper extends Injectable {
@@ -19,17 +20,18 @@ export class VesselFinderScraper extends Injectable {
 
     mongoose.connect(this.mongodbURI).then(() => {
       console.log('Connecting to db...');
-      this.vesselModel = mongoose.model('Vessel', {
-        imo_number: String,
-        vessel_name: String,
-        ship_type: String,
-        flag: String,
-        gross_tonnage: String,
-        length_overall: String,
-        year_of_build: String,
-        mmsi: String,
-        callsign: String,
-      } as any);
+      this.vesselModel = VesselSchema.model;
+      // this.vesselModel = mongoose.model('Vessel', {
+      //   imo_number: String,
+      //   vessel_name: String,
+      //   ship_type: String,
+      //   flag: String,
+      //   gross_tonnage: String,
+      //   length_overall: String,
+      //   year_of_build: String,
+      //   mmsi: String,
+      //   callsign: String,
+      // } as any);
     });
   }
 
@@ -48,8 +50,7 @@ export class VesselFinderScraper extends Injectable {
             status: Status.Processing,
           })
         );
-        await browser.close();
-        subscriber.complete();
+        browser.close().then(() => subscriber.complete());
       });
     })
   }
@@ -85,11 +86,10 @@ export class VesselFinderScraper extends Injectable {
       if (Object.keys(details)?.length > 0) {
         const date = new Date();
         details.created_at = date;
-        details.last_updated_at = date;
+        details.last_updated_on = date;
         try {
-          const vessel = new this.vesselModel(details);
-          await vessel.save();
-          await appendFile(`./output/${details?.year_of_build}_log.txt`, JSON.stringify(details) + ',\n');
+          await VesselSchema.model.create(details);
+          // await appendFile(`./output/${details?.year_of_build}_log.txt`, JSON.stringify(details) + ',\n');
         } catch (e) {
           await appendFile(`./output/${details?.year_of_build}_failed_log.txt`, JSON.stringify(details) + ',\n');
         }
