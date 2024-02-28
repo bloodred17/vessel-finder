@@ -13,7 +13,7 @@ self.onmessage = (event: MessageEvent) => {
       break;
     }
     case Command.Start: {
-      jobs.executeJobsV2().subscribe({
+      jobs.executeJobs().subscribe({
         next: (value) => {
           self.postMessage(value)
         },

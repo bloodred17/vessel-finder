@@ -5,6 +5,7 @@ import {VesselFinderScraper} from "./vessel-finder.scraper.ts";
 import MessageEvent = Bun.MessageEvent;
 import {Command} from "./command.ts";
 import {fromArrayLike} from "rxjs/internal/observable/innerFrom";
+import {VesselSchema} from "./vessel.schema.ts";
 
 export interface NewJob {
   name: string,
@@ -23,7 +24,7 @@ export enum Status {
 
 export class Jobs extends Injectable {
   private jobList: Job[] = [];
-  private failedJobs: Job[] = []
+  private failedJobs: Job[] = [];
   private _browser!: Browser
   private vesselFinder = VesselFinderScraper.getInstance<VesselFinderScraper>(VesselFinderScraper);
   readonly mongodbWorker: Worker;
@@ -86,11 +87,16 @@ export class Jobs extends Injectable {
     })
   }
 
-  executeJobsV2() {
+  executeJobs() {
     return new Observable((subscriber) => {
       this.getFromQueue().subscribe({
-        next: (jobsTodo: Job[]) => {
-          for (const job of jobsTodo) {
+        next: async (jobsTodo: Job[]) => {
+          for await (const job of jobsTodo) {
+            const found = await VesselSchema.model.findOne({ vessel_name: job.name })
+            if (found) {
+              continue;
+            }
+
             subscriber.next({ message: "Executing " + job.name });
             this.vesselFinder.getVesselDetails(subscriber, this._browser, job, this.mongodbWorker)
               .then((status: Status) => {
@@ -111,39 +117,11 @@ export class Jobs extends Injectable {
     })
   }
 
-  executeJobs() {
-    return new Observable((subscriber) => {
-      setInterval(async () => {
-        const jobsTodo = this.queryJobs();
-        if (jobsTodo.length == 0) {
-          await this._browser.close();
-          subscriber.complete();
-        }
-
-        // Execute
-        for (const job of jobsTodo) {
-          subscriber.next({ message: "Executing " + job.name });
-          this.vesselFinder.getVesselDetails(subscriber, this._browser, job, this.mongodbWorker)
-            .then((status: Status) => {
-              if (status == Status.Failed) {
-                this.failedJobs.push(job);
-              }
-
-              console.log('Job ' + job.name + ' executed: ' + status);
-              const index = this.jobList.findIndex((_job) => _job.name == job.name);
-              this.jobList[index] = { ...job, status };
-            });
-        }
-        
-      }, 5_000)
-    })
-  }
-
   queryJobs(limit = 3) {
     const list = this.jobList.filter((job) => job.status == Status.Queued)
       .slice(0, limit);
     list.forEach((item) => {
-      const index = this.jobList.findIndex((job) => job.name === item.name);
+      const index = this.jobList.findIndex((job) => job.url === item.url);
       this.jobList[index].status = Status.Processing;
     })
     return list;
