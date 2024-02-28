@@ -59,7 +59,9 @@ export class Jobs extends Injectable {
   }
 
   createJobs(jobs: NewJob[]) {
-    jobs.map((job) => ({status: Status.Queued, ...job}))
+    jobs
+      .filter((job) => !this.jobList.find((_job) => _job?.url == job?.url))
+      .map((job) => ({status: Status.Queued, ...job} as Job))
       .forEach((job) => this.jobList.push(job))
   }
 

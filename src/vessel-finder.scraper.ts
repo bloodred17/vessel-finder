@@ -21,17 +21,6 @@ export class VesselFinderScraper extends Injectable {
     mongoose.connect(this.mongodbURI).then(() => {
       console.log('Connecting to db...');
       this.vesselModel = VesselSchema.model;
-      // this.vesselModel = mongoose.model('Vessel', {
-      //   imo_number: String,
-      //   vessel_name: String,
-      //   ship_type: String,
-      //   flag: String,
-      //   gross_tonnage: String,
-      //   length_overall: String,
-      //   year_of_build: String,
-      //   mmsi: String,
-      //   callsign: String,
-      // } as any);
     });
   }
 
